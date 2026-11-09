@@ -213,8 +213,7 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: Cluster credentials
         env: {KUBECONFIG_DATA: "${{ secrets.KUBECONFIG }}"}
-        run: mkdir -p ~/.kube && printf '%s
-' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
+        run: mkdir -p ~/.kube && printf '%s' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
       - run: bash tools/deploy.sh staging "${{ needs.publish-images.outputs.image }}" "${{ needs.publish-images.outputs.report_image }}"
 
   deploy-regression:
@@ -227,8 +226,7 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: Cluster credentials
         env: {KUBECONFIG_DATA: "${{ secrets.KUBECONFIG }}"}
-        run: mkdir -p ~/.kube && printf '%s
-' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
+        run: mkdir -p ~/.kube && printf '%s' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
       - run: bash tools/deploy.sh regression "${{ needs.publish-images.outputs.image }}" "${{ needs.publish-images.outputs.report_image }}"
 
   deploy-preprod:
@@ -241,8 +239,7 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: Cluster credentials
         env: {KUBECONFIG_DATA: "${{ secrets.KUBECONFIG }}"}
-        run: mkdir -p ~/.kube && printf '%s
-' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
+        run: mkdir -p ~/.kube && printf '%s' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
       - run: bash tools/deploy.sh preprod "${{ needs.publish-images.outputs.image }}" "${{ needs.publish-images.outputs.report_image }}"
 
   deploy-production:
@@ -255,6 +252,5 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: Cluster credentials
         env: {KUBECONFIG_DATA: "${{ secrets.KUBECONFIG }}"}
-        run: mkdir -p ~/.kube && printf '%s
-' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
+        run: mkdir -p ~/.kube && printf '%s' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
       - run: bash tools/deploy.sh production "${{ needs.publish-images.outputs.image }}" "${{ needs.publish-images.outputs.report_image }}"
