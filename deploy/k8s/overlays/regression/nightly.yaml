@@ -1,0 +1,59 @@
+# Nightly full regression including the wall-clock `timing` tests (quiet cluster at night), 4 shards.
+# Each run is a new Job (test-run-nightly-<time>), so its results land in the collector under their own run ID.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: test-run-nightly
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 7
+  jobTemplate:
+    spec:
+      completionMode: Indexed
+      completions: 4
+      parallelism: 4
+      backoffLimitPerIndex: 1
+      maxFailedIndexes: 4
+      ttlSecondsAfterFinished: 604800
+      template:
+        metadata:
+          labels: {app.kubernetes.io/name: test-run, app.kubernetes.io/component: test-worker, qa.ammeter/client: "true"}
+        spec:
+          restartPolicy: Never
+          serviceAccountName: ammeter-qa
+          automountServiceAccountToken: false
+          securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels: {app.kubernetes.io/component: test-worker}
+          containers:
+            - name: pytest
+              image: ammeter-qa:test
+              imagePullPolicy: IfNotPresent
+              env:
+                - {name: PYTEST_SHARD_COUNT, value: "4"}
+                - {name: PYTEST_MARKERS, value: "regression"}
+                - name: RUN_ID
+                  valueFrom: {fieldRef: {fieldPath: "metadata.labels['batch.kubernetes.io/job-name']"}}
+                - {name: RESULTS_SERVER, value: "http://results:8080"}
+                - {name: MPLCONFIGDIR, value: /tmp/matplotlib}
+                - {name: HOME, value: /tmp}
+              command: ["sh", "-c"]
+              args:
+                - |
+                  python -m pytest -q -p no:cacheprovider -m "$PYTEST_MARKERS" --alluredir=/tmp/allure-results
+                  status=$?
+                  python tools/upload_results.py --server "$RESULTS_SERVER" --run "$RUN_ID" \
+                    --shard "$JOB_COMPLETION_INDEX" --of "$PYTEST_SHARD_COUNT" /tmp/allure-results || status=1
+                  exit $status
+              resources:
+                requests: {cpu: 500m, memory: 512Mi}
+                limits: {cpu: "1", memory: 1Gi}
+              securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+              volumeMounts: [{name: tmp, mountPath: /tmp}]
+          volumes: [{name: tmp, emptyDir: {sizeLimit: 1Gi}}]

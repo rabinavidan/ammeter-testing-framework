@@ -1,0 +1,39 @@
+# Local quality gates, run by git before you share work (install once: pre-commit install --install-hooks
+# --hook-type pre-commit --hook-type pre-push). They call tools/check.py, so they match CI exactly.
+#   on commit (~5 s):  ruff + knowledge-base check
+#   on push   (~15 s): refuse direct pushes to main; mypy + the unit layer with its coverage floor
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff (lint)
+        entry: python -m ruff check
+        language: system
+        types: [python]
+        stages: [pre-commit]
+      - id: knowledge-base
+        name: knowledge base is in sync with the code
+        entry: python tools/check.py kb
+        language: system
+        pass_filenames: false
+        files: ^(knowledge/|Ammeters/|src/|tools/kb\.py)
+        stages: [pre-commit]
+      - id: no-push-to-main
+        name: block direct pushes to main (open a pull request instead)
+        entry: python tools/guard_main.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: mypy
+        name: mypy (types)
+        entry: python -m mypy
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: unit-tests
+        name: unit tests + coverage floor
+        entry: python tools/check.py unit
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

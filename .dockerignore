@@ -1,0 +1,16 @@
+# Keep the build context small and the image free of local state
+.venv/
+.git/
+.idea/
+.claude/
+**/__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+results/
+reports/
+allure-results/
+allure-report/
+sample_results/
+coverage.xml
+.coverage

@@ -1,0 +1,69 @@
+# Test workers: an Indexed Job. Each pod is one shard (index = JOB_COMPLETION_INDEX); the conftest shards the suite
+# round-robin over sorted test IDs, so the shards are disjoint and cover everything. Shards spread across nodes
+# (prefer the `test-workers` pool) and each uploads its Allure results to the collector, which builds one merged
+# report when the last shard arrives. Overlays set the shard count (completions = parallelism = PYTEST_SHARD_COUNT)
+# and the test selection (PYTEST_MARKERS).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-run
+  labels: {app.kubernetes.io/name: test-run, app.kubernetes.io/component: test-worker}
+spec:
+  completionMode: Indexed
+  completions: 2
+  parallelism: 2
+  backoffLimitPerIndex: 1           # retry a failed shard once, independently of the others
+  maxFailedIndexes: 2
+  ttlSecondsAfterFinished: 86400    # keep finished pods a day for their logs
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: test-run, app.kubernetes.io/component: test-worker, qa.ammeter/client: "true"}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ammeter-qa
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions: [{key: qa.ammeter/pool, operator: In, values: [test-workers]}]
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {app.kubernetes.io/component: test-worker}
+      containers:
+        - name: pytest
+          image: ammeter-qa:test
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: PYTEST_SHARD_COUNT, value: "2"}
+            - {name: PYTEST_MARKERS, value: "sanity"}
+            - name: RUN_ID
+              valueFrom: {fieldRef: {fieldPath: "metadata.labels['batch.kubernetes.io/job-name']"}}
+            - {name: RESULTS_SERVER, value: "http://results:8080"}
+            - {name: MPLCONFIGDIR, value: /tmp/matplotlib}
+            - {name: HOME, value: /tmp}
+          command: ["sh", "-c"]
+          args:
+            - |
+              python -m pytest -q -p no:cacheprovider -m "$PYTEST_MARKERS" --alluredir=/tmp/allure-results
+              status=$?
+              echo "shard ${JOB_COMPLETION_INDEX}/${PYTEST_SHARD_COUNT} of ${RUN_ID}: pytest exit ${status}"
+              python tools/upload_results.py --server "$RESULTS_SERVER" --run "$RUN_ID" \
+                --shard "$JOB_COMPLETION_INDEX" --of "$PYTEST_SHARD_COUNT" /tmp/allure-results || status=1
+              exit $status
+          resources:
+            requests: {cpu: 500m, memory: 512Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {sizeLimit: 1Gi}}

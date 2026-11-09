@@ -1,0 +1,16 @@
+# Framework config inside the cluster: the ammeters are reached through their Services (cluster DNS).
+testing:
+  sampling: {measurements_count: 10, total_duration_seconds: NULL, sampling_frequency_hz: 5}
+  request_timeout_seconds: 2.0
+  mains_frequency_hz: 50
+ammeters:
+  greenlee: {host: greenlee, port: 5000, command: "MEASURE_GREENLEE -get_measurement", plausible_range_a: [0.01, 100]}
+  entes: {host: entes, port: 5001, command: "MEASURE_ENTES -get_data", plausible_range_a: [5, 200]}
+  circutor: {host: circutor, port: 5002, command: "MEASURE_CIRCUTOR -get_measurement", plausible_range_a: [0.001, 0.1]}
+analysis:
+  statistical_metrics: [mean, median, std_dev, min, max, range, coefficient_of_variation]
+  visualization: {enabled: true, output_dir: results/plots, plot_types: [time_series, histogram, control_chart]}
+  accuracy: {reference_current_a: NULL, confidence_level: 0.95, bootstrap_resamples: 2000, random_seed: 0,
+             output_dir: results/accuracy}
+result_management: {enabled: true, archive_dir: results/archive}
+error_simulation: {enabled: false}

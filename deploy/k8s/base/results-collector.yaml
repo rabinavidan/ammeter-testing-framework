@@ -1,0 +1,65 @@
+# Results collector: receives each shard's Allure results over HTTP and builds one merged report per run once all
+# shards have arrived (tools/results_server.py, in the `report` image which has Java + Allure). It owns the volume,
+# so shards on any node can contribute without a ReadWriteMany volume. Production clusters would use object storage
+# (S3/GCS) with the same upload-then-merge flow.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: results-data
+  labels: {app.kubernetes.io/name: results, app.kubernetes.io/component: results-collector}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 2Gi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: results
+  labels: {app.kubernetes.io/name: results, app.kubernetes.io/component: results-collector}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}        # one writer for a ReadWriteOnce volume
+  selector:
+    matchLabels: {app.kubernetes.io/name: results}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: results, app.kubernetes.io/component: results-collector}
+    spec:
+      serviceAccountName: ammeter-qa
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000,
+                        seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: collector
+          image: ammeter-qa-report:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "tools/results_server.py", "--data", "/data", "--port", "8080"]
+          env:
+            - {name: HOME, value: /tmp}
+            - {name: JAVA_TOOL_OPTIONS, value: "-Djava.io.tmpdir=/tmp"}
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 20}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: data, persistentVolumeClaim: {claimName: results-data}}
+        - {name: tmp, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: results
+  labels: {app.kubernetes.io/name: results, app.kubernetes.io/component: results-collector}
+spec:
+  selector: {app.kubernetes.io/name: results}
+  ports: [{name: http, port: 8080, targetPort: http}]

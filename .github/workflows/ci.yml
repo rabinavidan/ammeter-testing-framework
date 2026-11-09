@@ -1,0 +1,260 @@
+# CI: cheap gates first, expensive ones only if those pass. Every step calls tools/check.py, the same
+# entry point as local runs, git hooks and Docker.
+#   1. lint      ruff, mypy
+#   2. unit      unit layer + coverage floor (90 %)        } in parallel
+#      sanity    hand-picked smoke set                       }
+#   3. regression  every test except wall-clock `timing`, in parallel (pytest-xdist), on Linux/Windows/macOS
+#                  and Python 3.11-3.14
+#   4. report    Allure report (single HTML file) from the Linux regression run
+#   5. docker    the image builds and runs the sanity set, as a reviewer would run it
+#   PRs only:  diff-coverage  every changed line in Ammeters/ covered (100 %), in src/ at least 90 %
+#   ci-gate    THE required status check: green only if every job above passed. Branch protection on `main`
+#              requires it (tools/setup_branch_protection.sh), so a PR can merge only when CI is green.
+#
+# CD (push to main only, once the repository variable CD_ENABLED is "true"; until then these jobs are skipped):
+#   publish-images     build both images once, tagged with the commit SHA, and push them to GitHub Container Registry
+#   deploy-staging  -> deploy-regression -> deploy-preprod -> deploy-production
+#                      the same images promoted environment by environment with tools/deploy.sh, which waits for
+#                      each environment's test run and environment check; a failure stops the promotion there.
+#   Each deploy job runs in a GitHub Environment of the same name holding a KUBECONFIG secret for its cluster.
+#   Add required reviewers to the preprod and production Environments to make those two promotions manual.
+#   The runner must reach the cluster: set the repository variable CD_RUNNER to a self-hosted runner label for a
+#   private or local cluster (GitHub-hosted runners can only reach public API servers).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+      - run: pip install -r requirements-lock.txt
+      - run: python tools/check.py lint
+
+  unit:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+      - run: pip install -r requirements-lock.txt
+      - run: python tools/check.py unit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-coverage
+          path: coverage.xml
+
+  sanity:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+      - run: pip install -r requirements-lock.txt
+      - run: python tools/check.py sanity
+
+  regression:
+    needs: [unit, sanity]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Every supported Python on Linux; the newest on Windows and macOS
+          - { os: ubuntu-latest, python: "3.11" }
+          - { os: ubuntu-latest, python: "3.12" }
+          - { os: ubuntu-latest, python: "3.13" }
+          - { os: ubuntu-latest, python: "3.14" }
+          - { os: windows-latest, python: "3.14" }
+          - { os: macos-latest, python: "3.14" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      # Version ranges, not the lock: the lock was made on Python 3.14 and older Pythons need older wheels
+      - run: pip install -r requirements-dev.txt
+      - run: python tools/check.py regression --parallel --allure allure-results
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        with:
+          name: allure-results
+          path: allure-results
+
+  report:
+    needs: regression
+    if: always() && needs.regression.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm install -g allure-commandline@2
+      - run: allure generate allure-results -o allure-report --clean --single-file
+      - uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/index.html
+
+  diff-coverage:
+    # New code must come with tests: changed lines vs the PR's base branch
+    if: github.event_name == 'pull_request'
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+      - run: pip install -r requirements-lock.txt
+      - run: python tools/changed_coverage.py --base origin/${{ github.base_ref }} --path Ammeters --min 100
+      - run: python tools/changed_coverage.py --base origin/${{ github.base_ref }} --path src --min 90
+
+  docker:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --target test -t ammeter-qa:ci .
+      - run: docker run --rm ammeter-qa:ci python tools/check.py sanity
+
+  ci-gate:
+    # The single required check for merging into main. `needs` lists every gate; a skipped job counts as passing
+    # only where skipping is expected (diff-coverage runs on pull requests only).
+    if: always()
+    needs: [lint, unit, sanity, regression, docker, diff-coverage]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All gates passed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = {job: info["result"] for job, info in json.loads(os.environ["RESULTS"]).items()}
+          allowed = {"success"} | ({"skipped"} if os.environ.get("GITHUB_EVENT_NAME") != "pull_request" else set())
+          failed = {job: result for job, result in results.items()
+                    if result not in (allowed if job == "diff-coverage" else {"success"})}
+          for job, result in sorted(results.items()):
+              print(f"{job:14} {result}")
+          sys.exit(f"Blocked: {failed}" if failed else 0)
+          PY
+
+  publish-images:
+    needs: ci-gate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.CD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.refs.outputs.image }}
+      report_image: ${{ steps.refs.outputs.report_image }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: refs
+        name: Image references (registry paths must be lower case)
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "image=ghcr.io/${owner}/ammeter-qa:${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+          echo "report_image=ghcr.io/${owner}/ammeter-qa-report:${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: docker build --target test -t "${{ steps.refs.outputs.image }}" .
+      - run: docker build --target report -t "${{ steps.refs.outputs.report_image }}" .
+      - run: docker push "${{ steps.refs.outputs.image }}" && docker push "${{ steps.refs.outputs.report_image }}"
+
+  deploy-staging:
+    needs: publish-images
+    runs-on: ${{ vars.CD_RUNNER || 'ubuntu-latest' }}
+    environment: staging
+    concurrency: {group: deploy-staging, cancel-in-progress: false}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+      - name: Cluster credentials
+        env: {KUBECONFIG_DATA: "${{ secrets.KUBECONFIG }}"}
+        run: mkdir -p ~/.kube && printf '%s
+' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
+      - run: bash tools/deploy.sh staging "${{ needs.publish-images.outputs.image }}" "${{ needs.publish-images.outputs.report_image }}"
+
+  deploy-regression:
+    needs: [publish-images, deploy-staging]
+    runs-on: ${{ vars.CD_RUNNER || 'ubuntu-latest' }}
+    environment: regression
+    concurrency: {group: deploy-regression, cancel-in-progress: false}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+      - name: Cluster credentials
+        env: {KUBECONFIG_DATA: "${{ secrets.KUBECONFIG }}"}
+        run: mkdir -p ~/.kube && printf '%s
+' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
+      - run: bash tools/deploy.sh regression "${{ needs.publish-images.outputs.image }}" "${{ needs.publish-images.outputs.report_image }}"
+
+  deploy-preprod:
+    needs: [publish-images, deploy-regression]
+    runs-on: ${{ vars.CD_RUNNER || 'ubuntu-latest' }}
+    environment: preprod          # add required reviewers to this Environment for a manual release gate
+    concurrency: {group: deploy-preprod, cancel-in-progress: false}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+      - name: Cluster credentials
+        env: {KUBECONFIG_DATA: "${{ secrets.KUBECONFIG }}"}
+        run: mkdir -p ~/.kube && printf '%s
+' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
+      - run: bash tools/deploy.sh preprod "${{ needs.publish-images.outputs.image }}" "${{ needs.publish-images.outputs.report_image }}"
+
+  deploy-production:
+    needs: [publish-images, deploy-preprod]
+    runs-on: ${{ vars.CD_RUNNER || 'ubuntu-latest' }}
+    environment: production       # add required reviewers: production watches the real devices
+    concurrency: {group: deploy-production, cancel-in-progress: false}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+      - name: Cluster credentials
+        env: {KUBECONFIG_DATA: "${{ secrets.KUBECONFIG }}"}
+        run: mkdir -p ~/.kube && printf '%s
+' "$KUBECONFIG_DATA" > ~/.kube/config && chmod 600 ~/.kube/config
+      - run: bash tools/deploy.sh production "${{ needs.publish-images.outputs.image }}" "${{ needs.publish-images.outputs.report_image }}"

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ammeter-staging
+  labels:
+    pod-security.kubernetes.io/enforce: restricted     # every pod here meets the restricted Pod Security Standard
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: env-quota
+  namespace: ammeter-staging
+spec:
+  hard: {requests.cpu: "3", requests.memory: 3Gi, limits.cpu: "6", limits.memory: 6Gi, pods: "15",
+         persistentvolumeclaims: "2"}

@@ -1,0 +1,54 @@
+# Namespace-level guardrails shared by every environment: a service account with no API access, default
+# container limits, and network isolation (only test clients reach the ammeters; only test workers reach the
+# results collector; nothing else gets in).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ammeter-qa
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: container-defaults
+spec:
+  limits:
+    - type: Container
+      default: {cpu: 500m, memory: 512Mi}
+      defaultRequest: {cpu: 100m, memory: 128Mi}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ammeters-from-test-clients
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/component: emulator}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {qa.ammeter/client: "true"}
+      ports: [{port: 5000}, {port: 5001}, {port: 5002}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: results-from-test-workers
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/component: results-collector}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/component: test-worker}
+      ports: [{port: 8080}]

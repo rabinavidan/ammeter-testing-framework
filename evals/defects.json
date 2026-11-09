@@ -1,0 +1,50 @@
+[
+  {
+    "id": "wrong-median",
+    "description": "The median metric returns the lower middle value instead of the median",
+    "file": "src/analysis/result_analysis.py",
+    "find": "    \"median\": statistics.median,",
+    "replace": "    \"median\": statistics.median_low,",
+    "detect": "median"
+  },
+  {
+    "id": "always-pass-check",
+    "description": "A spec audit check that can never fail (hard-coded PASS)",
+    "file": "tools/spec_audit.py",
+    "find": "    check(\"Constraints\", \"cross-platform compatibility\", not problems,",
+    "replace": "    check(\"Constraints\", \"cross-platform compatibility\", True,",
+    "detect": "cross.platform|hard.coded|always pass|can.t fail|cannot fail"
+  },
+  {
+    "id": "missing-encoding",
+    "description": "Archive records read without an explicit encoding (breaks on non-UTF-8 default locales)",
+    "file": "src/results/result_archive.py",
+    "find": "        with open(path, encoding=\"utf-8\") as f:\n            return json.load(f)",
+    "replace": "        with open(path) as f:\n            return json.load(f)",
+    "detect": "encoding"
+  },
+  {
+    "id": "false-doc-default",
+    "description": "README states a request timeout default that the config does not use",
+    "file": "README.md",
+    "find": "Per-request socket timeout (default 2.0).",
+    "replace": "Per-request socket timeout (default 5.0).",
+    "detect": "timeout"
+  },
+  {
+    "id": "broken-doc-link",
+    "description": "README links to a design document that does not exist",
+    "file": "README.md",
+    "find": "in [docs/design-decisions.md](docs/design-decisions.md).",
+    "replace": "in [docs/design.md](docs/design.md).",
+    "detect": "design\\.md|broken link|dead link"
+  },
+  {
+    "id": "stale-sample",
+    "description": "A sample result record lacks a field the current code produces",
+    "file": "sample_results/archive/*.json",
+    "find": "  \"timing\": {",
+    "replace": "  \"timing_removed\": {",
+    "detect": "sample"
+  }
+]

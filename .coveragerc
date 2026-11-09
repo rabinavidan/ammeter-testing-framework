@@ -1,0 +1,6 @@
+[report]
+# Abstract-method bodies only run if a subclass calls super() on an abstract member (none does);
+# the real contract, that an incomplete subclass can't be created, is tested instead.
+exclude_also =
+    raise NotImplementedError
+    if __name__ == .__main__.:

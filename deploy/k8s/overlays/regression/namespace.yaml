@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ammeter-regression
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: env-quota
+  namespace: ammeter-regression
+spec:
+  hard: {requests.cpu: "6", requests.memory: 6Gi, limits.cpu: "12", limits.memory: 12Gi, pods: "30",
+         persistentvolumeclaims: "2"}

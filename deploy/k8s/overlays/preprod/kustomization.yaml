@@ -1,0 +1,23 @@
+# preprod: production-like. Same image digest that will be promoted; 2 emulator replicas with disruption budgets;
+# the spec's acceptance tests plus the sanity set; strict placement on the right node pools.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ammeter-preprod
+resources: [namespace.yaml, ../../base, pdb.yaml]
+labels:
+  - pairs: {qa.ammeter/environment: preprod}
+    includeSelectors: false
+replicas:
+  - {name: greenlee, count: 2}
+  - {name: entes, count: 2}
+  - {name: circutor, count: 2}
+# Promotion pins the exact images that passed regression. Each image has its own name, so each is pinned on its own
+# (kustomize matches images by name, ignoring the tag). On a real cluster use a registry and digests, e.g.
+#   - {name: ammeter-qa, newName: registry.example.com/ammeter-qa, digest: "sha256:..."}
+images:
+  - {name: ammeter-qa, newTag: test}
+  - {name: ammeter-qa-report, newTag: latest}
+patches:
+  - target: {kind: Job, name: test-run}
+    patch: |
+      - {op: replace, path: /spec/template/spec/containers/0/env/1/value, value: "acceptance or sanity"}

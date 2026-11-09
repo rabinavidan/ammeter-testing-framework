@@ -1,0 +1,93 @@
+# Configuration for the test suite. Tests load this, never config/config.yaml, so a legitimate change to
+# the production settings can't break unrelated tests. The production file has its own contract test
+# (tests/unit/test_config_contract.py). Paths are relative to the test's temporary working directory.
+testing:
+  sampling:
+    measurements_count: 10
+    total_duration_seconds: NULL
+    sampling_frequency_hz: 20
+  request_timeout_seconds: 0.5
+  mains_frequency_hz: 50
+
+ammeters:
+  greenlee:
+    port: 5000
+    command: "MEASURE_GREENLEE -get_measurement"
+    plausible_range_a: [0.01, 100]
+  entes:
+    port: 5001
+    command: "MEASURE_ENTES -get_data"
+    plausible_range_a: [5, 200]
+  circutor:
+    port: 5002
+    command: "MEASURE_CIRCUTOR -get_measurement"
+    plausible_range_a: [0.001, 0.1]
+
+analysis:
+  statistical_metrics: [mean, median, std_dev, min, max, range, coefficient_of_variation]
+  visualization:
+    enabled: false              # tests that check charts switch them on
+    output_dir: results/plots
+    plot_types: [time_series, histogram, control_chart]
+  accuracy:
+    reference_current_a: NULL
+    confidence_level: 0.95
+    bootstrap_resamples: 2000
+    random_seed: 0
+    output_dir: results/accuracy
+
+result_management:
+  enabled: true
+  archive_dir: results/archive
+
+error_simulation:
+  enabled: false
+
+accuracy_verification:
+  points_percent_of_range: [0, 10, 50, 90, 100, -10, -50, -100]
+  readings_per_point: 10
+  sampling_frequency_hz: 50
+  reference_relative_uncertainty: 0.0001
+  seed: 0
+  instruments:
+    greenlee:
+      test_signal: dc
+      range_a: 10
+      resolution_a: 0.001
+      gain_error: 0.003
+      offset_a: 0.001
+      noise_floor_a: 0.0005
+      relative_noise: 0.0005
+      measures_dc: true
+      burden_ohm: 0.01
+      accuracy_percent_of_reading: 0.5
+      accuracy_counts: 3
+    entes:
+      test_signal: dc
+      range_a: 200
+      resolution_a: 0.1
+      gain_error: -0.008
+      offset_a: 0.2
+      noise_floor_a: 0.05
+      relative_noise: 0.002
+      measures_dc: true
+      burden_ohm: 0
+      accuracy_percent_of_reading: 1.5
+      accuracy_counts: 5
+    circutor:
+      test_signal: ac
+      range_a: 100
+      resolution_a: 0.01
+      gain_error: 0.005
+      offset_a: 0
+      noise_floor_a: 0.01
+      relative_noise: 0.002
+      measures_dc: false
+      burden_ohm: 0
+      accuracy_percent_of_reading: 1.0
+      accuracy_counts: 5
+  supply_sweep:
+    instrument: greenlee
+    voltages_v: [0, 1, 2, 2.5, 3, 3.3, 5, 9, 12]
+    board: {brownout_v: 2.7, active_current_a: 0.045, sleep_current_a: 0.000025}
+    max_burden_fraction: 0.02

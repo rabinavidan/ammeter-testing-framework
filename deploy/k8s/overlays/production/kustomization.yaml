@@ -1,0 +1,60 @@
+# production: the REAL ammeters. No emulators and no test runs here: the devices are external, reached through
+# selector-less Services + EndpointSlices (replace the placeholder IPs), and the only workload is a read-only
+# monitoring check every 15 minutes that fails (alerting) if any device stops answering correctly.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ammeter-production
+resources: [namespace.yaml, ../../base, devices.yaml, monitoring.yaml]
+labels:
+  - pairs: {qa.ammeter/environment: production}
+    includeSelectors: false
+configMapGenerator:
+  - name: ammeter-config
+    behavior: replace
+    files: [config.yaml]
+patches:
+  # No emulators, no sharded test runs, no results collector in production
+  - patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: greenlee}
+  - patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: entes}
+  - patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: circutor}
+  - patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: results}
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata: {name: results}
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata: {name: results-data}
+  - patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: Job
+      metadata: {name: test-run}
+  - patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: Job
+      metadata: {name: env-check}
+  # The ammeter Services point at the devices instead of emulator pods
+  - target: {kind: Service, labelSelector: "app.kubernetes.io/component=emulator"}
+    patch: |
+      - {op: remove, path: /spec/selector}

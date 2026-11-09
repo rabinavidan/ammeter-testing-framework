@@ -1,0 +1,28 @@
+# The real ammeters on the plant network. The Services (from the base, selector removed) keep the same DNS names,
+# so the framework config is identical in every environment. REPLACE the documentation-range IPs (192.0.2.x).
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: greenlee-device
+  labels: {kubernetes.io/service-name: greenlee}
+addressType: IPv4
+ports: [{name: ammeter, port: 5000, protocol: TCP}]
+endpoints: [{addresses: ["192.0.2.10"]}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: entes-device
+  labels: {kubernetes.io/service-name: entes}
+addressType: IPv4
+ports: [{name: ammeter, port: 5001, protocol: TCP}]
+endpoints: [{addresses: ["192.0.2.11"]}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: circutor-device
+  labels: {kubernetes.io/service-name: circutor}
+addressType: IPv4
+ports: [{name: ammeter, port: 5002, protocol: TCP}]
+endpoints: [{addresses: ["192.0.2.12"]}]

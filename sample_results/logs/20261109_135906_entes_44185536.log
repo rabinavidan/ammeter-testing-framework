@@ -1,0 +1,16 @@
+2026-11-09 13:59:06,375 [INFO] test_entes_44185536: Starting test entes_44185536: entes on port 5001, 10 samples at 5 Hz over 2 s
+2026-11-09 13:59:06,375 [WARNING] test_entes_44185536: Sampling at 5 Hz is below twice the 50 Hz mains frequency: any mains ripple will appear at 0 Hz (as a constant offset)
+2026-11-09 13:59:06,376 [DEBUG] test_entes_44185536: Sample 0 at 0.0000s: 25.88567127761677 A
+2026-11-09 13:59:06,594 [DEBUG] test_entes_44185536: Sample 1 at 0.2004s: 75.0312261499022 A
+2026-11-09 13:59:06,797 [DEBUG] test_entes_44185536: Sample 2 at 0.4006s: 10.6671387482789 A
+2026-11-09 13:59:06,976 [DEBUG] test_entes_44185536: Sample 3 at 0.6001s: 50.238149016225826 A
+2026-11-09 13:59:07,176 [DEBUG] test_entes_44185536: Sample 4 at 0.8004s: 33.334024519486476 A
+2026-11-09 13:59:07,377 [DEBUG] test_entes_44185536: Sample 5 at 1.0007s: 22.634194055001732 A
+2026-11-09 13:59:07,576 [DEBUG] test_entes_44185536: Sample 6 at 1.2004s: 20.274183731143133 A
+2026-11-09 13:59:07,791 [DEBUG] test_entes_44185536: Sample 7 at 1.4005s: 65.47140191947942 A
+2026-11-09 13:59:07,976 [DEBUG] test_entes_44185536: Sample 8 at 1.6002s: 50.2353872142654 A
+2026-11-09 13:59:08,197 [DEBUG] test_entes_44185536: Sample 9 at 1.8008s: 59.02451474095334 A
+2026-11-09 13:59:08,375 [INFO] test_entes_44185536: Finished test entes_44185536: 10/10 samples ok, 0 errors, 2.000 s
+2026-11-09 13:59:08,375 [INFO] test_entes_44185536: Statistics for entes_44185536: count=10, mean=41.2796, median=41.7847, std_dev=21.6689, min=10.6671, max=75.0312, range=64.3641, coefficient_of_variation=0.52493, success_rate=1
+2026-11-09 13:59:08,673 [INFO] test_entes_44185536: Saved plots for entes_44185536: ['results\\plots\\entes_44185536_time_series.png', 'results\\plots\\entes_44185536_histogram.png', 'results\\plots\\entes_44185536_control_chart.png']
+2026-11-09 13:59:08,674 [INFO] test_entes_44185536: Archived entes_44185536 to results\archive\entes_44185536.json

@@ -1,0 +1,17 @@
+# Shared by every environment; overlays (../overlays/<env>) set the namespace and what differs.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs: {app.kubernetes.io/part-of: ammeter-qa}
+    includeSelectors: false
+resources:
+  - platform.yaml
+  - emulators.yaml
+  - results-collector.yaml
+  - test-workers.yaml
+  - env-check.yaml
+# The framework config the env-check uses: ammeter hosts are this namespace's Service names.
+# The hash suffix kustomize adds rolls pods that mount it whenever the config changes.
+configMapGenerator:
+  - name: ammeter-config
+    files: [config.yaml]

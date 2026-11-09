@@ -1,0 +1,11 @@
+# Development and CI tools, on top of the runtime requirements.
+# Exact versions verified together are pinned in requirements-lock.txt (used by Docker and the main CI job).
+-r requirements.txt
+pytest>=7.0
+allure-pytest>=2.13
+ruff>=0.6
+mypy>=1.10
+types-PyYAML
+pytest-cov>=5.0
+pytest-xdist>=3.5
+pre-commit>=3.7

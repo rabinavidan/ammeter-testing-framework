@@ -1,0 +1,16 @@
+# staging: every deploy of a new image lands here first. Smallest footprint; the sanity set in 2 shards,
+# then the env-check against the deployed emulators. Fast feedback, ~1 minute.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ammeter-staging
+resources: [namespace.yaml, ../../base]
+labels:
+  - pairs: {qa.ammeter/environment: staging}
+    includeSelectors: false
+patches:
+  - target: {kind: Job, name: test-run}
+    patch: |
+      - {op: replace, path: /spec/completions, value: 2}
+      - {op: replace, path: /spec/parallelism, value: 2}
+      - {op: replace, path: /spec/template/spec/containers/0/env/0/value, value: "2"}
+      - {op: replace, path: /spec/template/spec/containers/0/env/1/value, value: "sanity"}

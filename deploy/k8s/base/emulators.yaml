@@ -1,0 +1,164 @@
+# The system under test: one Deployment + Service per ammeter type. Pods run `python -m Ammeters.serve`, which
+# binds all interfaces and stops cleanly on SIGTERM. Readiness/liveness are TCP checks (the emulator closes a
+# connection that sends no command). Scheduling prefers the `sut` node pool and spreads replicas across nodes.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greenlee
+  labels: {app.kubernetes.io/name: greenlee, app.kubernetes.io/component: emulator}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: greenlee}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: greenlee, app.kubernetes.io/component: emulator}
+    spec:
+      serviceAccountName: ammeter-qa
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 15
+      securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions: [{key: qa.ammeter/pool, operator: In, values: [sut]}]
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {app.kubernetes.io/component: emulator}
+      containers:
+        - name: emulator
+          image: ammeter-qa:test
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "Ammeters.serve", "--type", "greenlee", "--port", "5000"]
+          ports: [{name: ammeter, containerPort: 5000}]
+          readinessProbe: {tcpSocket: {port: ammeter}, periodSeconds: 5}
+          livenessProbe: {tcpSocket: {port: ammeter}, periodSeconds: 20, failureThreshold: 3}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: entes
+  labels: {app.kubernetes.io/name: entes, app.kubernetes.io/component: emulator}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: entes}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: entes, app.kubernetes.io/component: emulator}
+    spec:
+      serviceAccountName: ammeter-qa
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 15
+      securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions: [{key: qa.ammeter/pool, operator: In, values: [sut]}]
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {app.kubernetes.io/component: emulator}
+      containers:
+        - name: emulator
+          image: ammeter-qa:test
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "Ammeters.serve", "--type", "entes", "--port", "5001"]
+          ports: [{name: ammeter, containerPort: 5001}]
+          readinessProbe: {tcpSocket: {port: ammeter}, periodSeconds: 5}
+          livenessProbe: {tcpSocket: {port: ammeter}, periodSeconds: 20, failureThreshold: 3}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: circutor
+  labels: {app.kubernetes.io/name: circutor, app.kubernetes.io/component: emulator}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: circutor}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: circutor, app.kubernetes.io/component: emulator}
+    spec:
+      serviceAccountName: ammeter-qa
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 15
+      securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions: [{key: qa.ammeter/pool, operator: In, values: [sut]}]
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {app.kubernetes.io/component: emulator}
+      containers:
+        - name: emulator
+          image: ammeter-qa:test
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "Ammeters.serve", "--type", "circutor", "--port", "5002"]
+          ports: [{name: ammeter, containerPort: 5002}]
+          readinessProbe: {tcpSocket: {port: ammeter}, periodSeconds: 5}
+          livenessProbe: {tcpSocket: {port: ammeter}, periodSeconds: 20, failureThreshold: 3}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greenlee
+  labels: {app.kubernetes.io/name: greenlee, app.kubernetes.io/component: emulator}
+spec:
+  selector: {app.kubernetes.io/name: greenlee}
+  ports: [{name: ammeter, port: 5000, targetPort: ammeter}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: entes
+  labels: {app.kubernetes.io/name: entes, app.kubernetes.io/component: emulator}
+spec:
+  selector: {app.kubernetes.io/name: entes}
+  ports: [{name: ammeter, port: 5001, targetPort: ammeter}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: circutor
+  labels: {app.kubernetes.io/name: circutor, app.kubernetes.io/component: emulator}
+spec:
+  selector: {app.kubernetes.io/name: circutor}
+  ports: [{name: ammeter, port: 5002, targetPort: ammeter}]

@@ -1,0 +1,138 @@
+{
+  "reference_current_a": null,
+  "confidence": 0.95,
+  "resamples": 2000,
+  "seed": 0,
+  "per_type": {
+    "greenlee": {
+      "runs": 1,
+      "test_ids": [
+        "greenlee_3391feb5"
+      ],
+      "readings": 2000,
+      "success_rate": 1.0,
+      "mean": 0.42377752243549194,
+      "mean_ci": [
+        0.3253724985292882,
+        0.5529521432170988
+      ],
+      "median": 0.11298162551743841,
+      "cv": 6.083607922816165,
+      "cv_ci": [
+        3.5838616501538803,
+        7.398169931615602
+      ],
+      "robust_cv": 0.826483880813664,
+      "robust_cv_ci": [
+        0.7775872756420499,
+        0.8698828556252204
+      ],
+      "between_run_cv": null,
+      "standard_uncertainty_a": 0.05764798563688134,
+      "expanded_uncertainty_k2_a": 0.11529597127376268
+    },
+    "entes": {
+      "runs": 1,
+      "test_ids": [
+        "entes_0d2662c8"
+      ],
+      "readings": 2000,
+      "success_rate": 1.0,
+      "mean": 69.75030654145856,
+      "mean_ci": [
+        67.90230354365931,
+        71.60761116430672
+      ],
+      "median": 62.655896974994235,
+      "cv": 0.5957750650913733,
+      "cv_ci": [
+        0.5799329041224075,
+        0.6122863217742042
+      ],
+      "robust_cv": 0.7145090184905002,
+      "robust_cv_ci": [
+        0.6825782307085841,
+        0.747176737416811
+      ],
+      "between_run_cv": null,
+      "standard_uncertainty_a": 0.9292090812539849,
+      "expanded_uncertainty_k2_a": 1.8584181625079699
+    },
+    "circutor": {
+      "runs": 1,
+      "test_ids": [
+        "circutor_63b6d463"
+      ],
+      "readings": 2000,
+      "success_rate": 1.0,
+      "mean": 0.03082148452212206,
+      "mean_ci": [
+        0.03014985093011279,
+        0.03150110187560434
+      ],
+      "median": 0.030844778251157785,
+      "cv": 0.4998812970272061,
+      "cv_ci": [
+        0.4857530198512047,
+        0.5140839588885975
+      ],
+      "robust_cv": 0.5901883508040451,
+      "robust_cv_ci": [
+        0.557658130488611,
+        0.6321419683771929
+      ],
+      "between_run_cv": null,
+      "standard_uncertainty_a": 0.0003445128639704734,
+      "expanded_uncertainty_k2_a": 0.0006890257279409468
+    }
+  },
+  "agreement": [
+    {
+      "a": "circutor",
+      "b": "entes",
+      "median_ratio": 0.0004922885113825414,
+      "median_ratio_ci": [
+        0.0004651956891184968,
+        0.0005154112895765737
+      ],
+      "agree": false
+    },
+    {
+      "a": "circutor",
+      "b": "greenlee",
+      "median_ratio": 0.2730070319832403,
+      "median_ratio_ci": [
+        0.25902592951409104,
+        0.29068224313992636
+      ],
+      "agree": false
+    },
+    {
+      "a": "entes",
+      "b": "greenlee",
+      "median_ratio": 554.5671403472901,
+      "median_ratio_ci": [
+        525.220491969187,
+        592.5274994346343
+      ],
+      "agree": false
+    }
+  ],
+  "ranking_metric": "robust_cv",
+  "ranking": [
+    "circutor",
+    "entes",
+    "greenlee"
+  ],
+  "most_reliable": "circutor",
+  "clear_winner": true,
+  "notes": [
+    "No reference current set: this ranks relative spread (robust CV), not accuracy. With meters measuring one steady current that is their repeatability; the emulators draw a new random current per reading, so here it compares how widely each one's readings spread. Set analysis.accuracy.reference_current_a to a known true current to assess accuracy."
+  ],
+  "runs_used": [
+    "greenlee_3391feb5",
+    "entes_0d2662c8",
+    "circutor_63b6d463"
+  ],
+  "report_path": "results\\accuracy\\accuracy_20261109_150734_48857b31.json"
+}

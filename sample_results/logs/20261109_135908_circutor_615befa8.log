@@ -1,0 +1,16 @@
+2026-11-09 13:59:08,675 [INFO] test_circutor_615befa8: Starting test circutor_615befa8: circutor on port 5002, 10 samples at 5 Hz over 2 s
+2026-11-09 13:59:08,675 [WARNING] test_circutor_615befa8: Sampling at 5 Hz is below twice the 50 Hz mains frequency: any mains ripple will appear at 0 Hz (as a constant offset)
+2026-11-09 13:59:08,692 [DEBUG] test_circutor_615befa8: Sample 0 at 0.0000s: 0.03647352248045161 A
+2026-11-09 13:59:08,894 [DEBUG] test_circutor_615befa8: Sample 1 at 0.2008s: 0.057214285077240516 A
+2026-11-09 13:59:09,076 [DEBUG] test_circutor_615befa8: Sample 2 at 0.4005s: 0.019500061489952033 A
+2026-11-09 13:59:09,298 [DEBUG] test_circutor_615befa8: Sample 3 at 0.6002s: 0.03779987862593325 A
+2026-11-09 13:59:09,499 [DEBUG] test_circutor_615befa8: Sample 4 at 0.8003s: 0.03192284876616333 A
+2026-11-09 13:59:09,700 [DEBUG] test_circutor_615befa8: Sample 5 at 1.0000s: 0.026812545547877698 A
+2026-11-09 13:59:09,876 [DEBUG] test_circutor_615befa8: Sample 6 at 1.2005s: 0.019674843105684535 A
+2026-11-09 13:59:10,089 [DEBUG] test_circutor_615befa8: Sample 7 at 1.4004s: 0.0430089943450292 A
+2026-11-09 13:59:10,291 [DEBUG] test_circutor_615befa8: Sample 8 at 1.6009s: 0.008860309113544714 A
+2026-11-09 13:59:10,476 [DEBUG] test_circutor_615befa8: Sample 9 at 1.8006s: 0.03218328586985817 A
+2026-11-09 13:59:10,675 [INFO] test_circutor_615befa8: Finished test circutor_615befa8: 10/10 samples ok, 0 errors, 2.000 s
+2026-11-09 13:59:10,675 [INFO] test_circutor_615befa8: Statistics for circutor_615befa8: count=10, mean=0.0313451, median=0.0320531, std_dev=0.0136499, min=0.00886031, max=0.0572143, range=0.048354, coefficient_of_variation=0.435471, success_rate=1
+2026-11-09 13:59:10,970 [INFO] test_circutor_615befa8: Saved plots for circutor_615befa8: ['results\\plots\\circutor_615befa8_time_series.png', 'results\\plots\\circutor_615befa8_histogram.png', 'results\\plots\\circutor_615befa8_control_chart.png']
+2026-11-09 13:59:10,972 [INFO] test_circutor_615befa8: Archived circutor_615befa8 to results\archive\circutor_615befa8.json

@@ -1,0 +1,15 @@
+# Node drains (upgrades, autoscaler) may take down at most one replica of each ammeter at a time
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: greenlee}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: greenlee}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: entes}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: entes}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: circutor}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: circutor}}}

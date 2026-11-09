@@ -1,0 +1,10 @@
+# Lint settings (run: python -m ruff check .). Line length matches the code's existing style.
+line-length = 120
+extend-exclude = ["results", "reports", "sample_results", "allure-results", "allure-report"]
+
+[lint]
+# pycodestyle errors/warnings, pyflakes, bugbear (likely bugs), import order
+select = ["E", "W", "F", "B", "I"]
+
+[lint.isort]
+known-first-party = ["Ammeters", "src", "main", "examples", "helpers", "kb"]

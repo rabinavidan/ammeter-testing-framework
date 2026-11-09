@@ -1,0 +1,44 @@
+# Every 15 minutes: read every device through the framework (no emulators started) and fail on any bad reading.
+# A failed Job is the alert signal (kube-state-metrics: kube_job_status_failed). Never runs two at once.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: device-check
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels: {app.kubernetes.io/name: device-check, app.kubernetes.io/component: env-check, qa.ammeter/client: "true"}
+        spec:
+          restartPolicy: Never
+          serviceAccountName: ammeter-qa
+          automountServiceAccountToken: false
+          securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+          containers:
+            - name: check
+              image: ammeter-qa:test
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "examples.run_tests", "--config", "/config/config.yaml", "--no-emulators",
+                        "--fail-on-errors"]
+              env:
+                - {name: MPLCONFIGDIR, value: /tmp/matplotlib}
+                - {name: HOME, value: /tmp}
+              resources:
+                requests: {cpu: 200m, memory: 256Mi}
+                limits: {cpu: "1", memory: 512Mi}
+              securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+              volumeMounts:
+                - {name: config, mountPath: /config}
+                - {name: results, mountPath: /app/results}
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - {name: config, configMap: {name: ammeter-config}}
+            - {name: results, emptyDir: {}}
+            - {name: tmp, emptyDir: {}}

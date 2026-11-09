@@ -1,0 +1,134 @@
+{
+  "reference_current_a": null,
+  "confidence": 0.95,
+  "resamples": 2000,
+  "seed": 0,
+  "per_type": {
+    "greenlee": {
+      "runs": 1,
+      "test_ids": [
+        "greenlee_fc9a1120"
+      ],
+      "readings": 10,
+      "success_rate": 1.0,
+      "mean": 0.40839883996823484,
+      "mean_ci": [
+        0.09116117757726021,
+        1.0040375818318166
+      ],
+      "median": 0.09504727629754334,
+      "cv": 2.2385728690807354,
+      "cv_ci": [
+        0.42417058296318155,
+        2.4235236344326574
+      ],
+      "robust_cv": 0.6335168418433116,
+      "robust_cv_ci": [
+        0.12140786837814038,
+        0.9409855225243101
+      ],
+      "between_run_cv": null,
+      "standard_uncertainty_a": 0.2891050885355387,
+      "expanded_uncertainty_k2_a": 0.5782101770710774
+    },
+    "entes": {
+      "runs": 1,
+      "test_ids": [
+        "entes_44185536"
+      ],
+      "readings": 10,
+      "success_rate": 1.0,
+      "mean": 41.27958913723532,
+      "mean_ci": [
+        29.771717945615727,
+        54.715303589794964
+      ],
+      "median": 41.78470586687594,
+      "cv": 0.5249298108772285,
+      "cv_ci": [
+        0.31572974967872824,
+        0.69217512562941
+      ],
+      "robust_cv": 0.6455985309658664,
+      "robust_cv_ci": [
+        0.12969345919282016,
+        0.9484837842604418
+      ],
+      "between_run_cv": null,
+      "standard_uncertainty_a": 6.852303702434797,
+      "expanded_uncertainty_k2_a": 13.704607404869593
+    },
+    "circutor": {
+      "runs": 1,
+      "test_ids": [
+        "circutor_615befa8"
+      ],
+      "readings": 10,
+      "success_rate": 1.0,
+      "mean": 0.03134505744217351,
+      "mean_ci": [
+        0.02368361175693559,
+        0.03952170133349807
+      ],
+      "median": 0.03205306731801075,
+      "cv": 0.4354714078731138,
+      "cv_ci": [
+        0.21461165454884804,
+        0.6156223809334592
+      ],
+      "robust_cv": 0.3862887693351701,
+      "robust_cv_ci": [
+        0.09557162080340881,
+        0.8149304170112541
+      ],
+      "between_run_cv": null,
+      "standard_uncertainty_a": 0.004316469886923249,
+      "expanded_uncertainty_k2_a": 0.008632939773846498
+    }
+  },
+  "agreement": [
+    {
+      "a": "circutor",
+      "b": "entes",
+      "median_ratio": 0.0007671004654222116,
+      "median_ratio_ci": [
+        0.00042546453706157015,
+        0.0015166612114279792
+      ],
+      "agree": false
+    },
+    {
+      "a": "circutor",
+      "b": "greenlee",
+      "median_ratio": 0.33723288627092635,
+      "median_ratio_ci": [
+        0.12479933788441044,
+        0.4856187758176401
+      ],
+      "agree": false
+    },
+    {
+      "a": "entes",
+      "b": "greenlee",
+      "median_ratio": 439.6202342092357,
+      "median_ratio_ci": [
+        134.64277825674318,
+        701.9859331067379
+      ],
+      "agree": false
+    }
+  ],
+  "ranking_metric": "robust_cv",
+  "ranking": [
+    "circutor",
+    "greenlee",
+    "entes"
+  ],
+  "most_reliable": "circutor",
+  "clear_winner": false,
+  "notes": [
+    "Only 10 readings for some type: below 30 the bootstrap intervals of robust CV are too narrow (about 89 % coverage for a nominal 95 % at 10 readings), so treat the ranking as indicative only.",
+    "No reference current set: this ranks precision (repeatability), not accuracy. Set analysis.accuracy.reference_current_a to a known true current to assess accuracy."
+  ],
+  "report_path": "results\\accuracy\\accuracy_20261109_135911_52373d6b.json"
+}

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="CI pipeline, environment promotion and the pods on each Kubernetes node for the ammeter testing framework.">
+<title>Ammeter QA Delivery Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* Layout: a pipeline strip on top, an environment switcher, then the cluster drawn as node columns holding pods, with one detail panel that explains whatever is selected. */
+:root {
+  --bg: #f3f5f4; --surface: #ffffff; --surface-2: #e8eeec; --line: #c9d4d0;
+  --fg: #16211e; --muted: #5a6964;
+  --accent: #0f7b6c; --accent-soft: #d3ece7;
+  --sut: #7a5af5; --sut-soft: #e9e3ff;
+  --worker: #0f7b6c; --worker-soft: #d3ece7;
+  --gap: #b4540a; --gap-soft: #fbe6d3;
+  --prod: #2f5fb3; --prod-soft: #dde7f8;
+  --font-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1514; --surface: #17201e; --surface-2: #1f2a27; --line: #33423e;
+  --fg: #e3ebe8; --muted: #9aaba5;
+  --accent: #4cc3b0; --accent-soft: #173a35;
+  --sut: #a993ff; --sut-soft: #2a2347;
+  --worker: #4cc3b0; --worker-soft: #173a35;
+  --gap: #f0a15c; --gap-soft: #3b2614;
+  --prod: #7fa6ec; --prod-soft: #1b2a45;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1514; --surface: #17201e; --surface-2: #1f2a27; --line: #33423e;
+  --fg: #e3ebe8; --muted: #9aaba5;
+  --accent: #4cc3b0; --accent-soft: #173a35;
+  --sut: #a993ff; --sut-soft: #2a2347;
+  --worker: #4cc3b0; --worker-soft: #173a35;
+  --gap: #f0a15c; --gap-soft: #3b2614;
+  --prod: #7fa6ec; --prod-soft: #1b2a45;
+  color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--font-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 28px; }
+h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(1.7rem, 3.6vw, 2.5rem); font-weight: 800; }
+h2 { font-size: 1.15rem; font-weight: 700; }
+.eyebrow { font: 500 0.72rem var(--font-mono); text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header { display: grid; gap: 10px; }
+.status { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; border: 1px solid var(--line); background: var(--surface); }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.pill.ok::before { background: var(--accent); }
+.pill.warn { border-color: var(--gap); }
+.pill.warn::before { background: var(--gap); }
+
+/* Pipeline */
+.section { display: grid; gap: 14px; }
+.flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.stage { flex: 1 1 140px; min-width: 0; text-align: left; cursor: pointer; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: grid; gap: 2px; }
+.stage .n { font: 500 0.7rem var(--font-mono); color: var(--muted); }
+.stage b { font-weight: 600; font-size: 0.92rem; }
+.stage small { color: var(--muted); font-size: 0.78rem; }
+.stage.gate { border-color: var(--accent); background: var(--accent-soft); }
+.stage.gapstage { border: 1px dashed var(--gap); background: var(--gap-soft); }
+.stage[aria-pressed="true"] { outline: 2px solid var(--fg); outline-offset: 1px; }
+.arrow { align-self: center; color: var(--muted); font-family: var(--font-mono); }
+
+/* Promotion */
+.promo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.env { cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: grid; text-align: left; gap: 1px; min-width: 0; }
+.env b { font-family: var(--font-display); font-weight: 700; }
+.env small { color: var(--muted); font-size: 0.76rem; }
+.env[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.env[aria-selected="true"] small { color: var(--bg); opacity: 0.8; }
+
+/* Cluster */
+.cluster-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: baseline; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.84rem; color: var(--muted); }
+.facts b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; }
+.nodes { display: grid; grid-template-columns: 0.8fr 1.2fr 1fr 1fr; gap: 10px; min-width: 760px; }
+.node { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 10px; display: grid; gap: 8px; align-content: start; }
+.node-h { display: grid; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.node-h b { font: 600 0.88rem var(--font-mono); }
+.tag { font: 500 0.7rem var(--font-mono); letter-spacing: 0.04em; padding: 1px 7px; border-radius: 4px; justify-self: start; }
+.tag.sut { background: var(--sut-soft); color: var(--sut); }
+.tag.worker { background: var(--worker-soft); color: var(--worker); }
+.tag.cp { background: var(--surface-2); color: var(--muted); }
+.ns { font: 500 0.7rem var(--font-mono); color: var(--muted); }
+.pods { display: grid; gap: 6px; }
+.pod { cursor: pointer; text-align: left; border-radius: 6px; padding: 7px 9px; border: 1px solid var(--line); background: var(--surface-2); display: grid; gap: 1px; min-width: 0; }
+.pod b { font-size: 0.84rem; font-weight: 600; overflow-wrap: anywhere; }
+.pod small { font: 400 0.72rem var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+.pod.emu { border-left: 4px solid var(--sut); }
+.pod.shard { border-left: 4px solid var(--worker); }
+.pod.svc { border-left: 4px solid var(--accent); background: var(--surface); }
+.pod.job { border-left: 4px solid var(--muted); }
+.pod.prod { border-left: 4px solid var(--prod); background: var(--prod-soft); }
+.pod[aria-pressed="true"] { outline: 2px solid var(--fg); outline-offset: 1px; }
+.empty { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+.external { margin-top: 10px; border: 1px dashed var(--prod); border-radius: 10px; padding: 10px; background: var(--prod-soft); display: grid; gap: 6px; }
+.external .pods { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.note { font-size: 0.8rem; color: var(--muted); }
+
+/* Sharding */
+.shards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.shard-col { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); min-width: 0; }
+.shard-col b { font: 600 0.8rem var(--font-mono); display: block; margin-bottom: 4px; }
+.shard-col ol { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 2px; }
+.shard-col li { font: 400 0.72rem var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+
+/* Detail */
+.detail { position: sticky; bottom: env(safe-area-inset-bottom, 0px); border: 1px solid var(--fg); border-radius: 10px; background: var(--surface); padding: 14px 16px; display: grid; gap: 6px; box-shadow: 0 6px 24px rgba(0,0,0,0.12); }
+.detail h3 { margin: 0; font: 700 1rem var(--font-display); }
+.detail .src { font: 400 0.75rem var(--font-mono); color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.78rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+@media (prefers-reduced-motion: no-preference) { .pod, .stage, .env { transition: background .15s, outline-color .15s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Ammeter testing framework · delivery architecture</span>
+    <h1>From a pull request to pods on four nodes</h1>
+    <p class="lede">How code moves through CI, which environments it is promoted to, and where each workload runs in the Kubernetes cluster. Click any stage, environment or pod for details.</p>
+    <div class="status">
+      <span class="pill ok">Cluster setup verified on a local 4-node cluster</span>
+      <span class="pill warn">CI configured, not yet run (no git remote yet)</span>
+      <span class="pill warn">CD configured: enable with CD_ENABLED + cluster credentials</span>
+    </div>
+  </header>
+
+  <section class="section" aria-labelledby="ci-h">
+    <div><span class="eyebrow">Stage 1 · GitHub Actions</span><h2 id="ci-h">Continuous integration</h2></div>
+    <div class="flow" id="flow"></div>
+  </section>
+
+  <section class="section" aria-labelledby="promo-h">
+    <div><span class="eyebrow">Stage 2 · promotion of one image</span><h2 id="promo-h">Environments</h2></div>
+    <div class="promo" id="promo" role="tablist" aria-label="Environment"></div>
+  </section>
+
+  <section class="section" aria-labelledby="cl-h">
+    <div class="cluster-head">
+      <div><span class="eyebrow" id="ns-label">namespace</span><h2 id="cl-h">Cluster: nodes and pods</h2></div>
+      <div class="facts" id="facts"></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--sut)"></i>system under test (pool <code>sut</code>)</span>
+      <span><i style="background:var(--worker)"></i>test shard (pool <code>test-workers</code>)</span>
+      <span><i style="background:var(--accent)"></i>results collector</span>
+      <span><i style="background:var(--muted)"></i>job / cronjob</span>
+      <span><i style="background:var(--prod)"></i>real device</span>
+    </div>
+    <div class="scroll"><div class="nodes" id="nodes"></div></div>
+    <div id="external"></div>
+    <p class="note">Placement shown is how the scheduler lays them out with these rules: each workload <em>prefers</em> its pool (node affinity) and spreads across nodes (topology spread). The verified regression run put its 4 shards on 3 nodes.</p>
+  </section>
+
+  <section class="section" aria-labelledby="sh-h">
+    <div><span class="eyebrow">How a test lands in a pod</span><h2 id="sh-h">Sharding</h2></div>
+    <p>Each test-run pod gets an index from the Indexed Job (<code>JOB_COMPLETION_INDEX</code>). <code>tests/conftest.py</code> sorts the selected test IDs and keeps every N-th one, starting at its index. Shards never overlap, together cover the whole selection, and differ by at most one test. Each shard uploads its Allure results to the collector, which builds one merged report when the last shard arrives.</p>
+    <div class="shards" id="shards"></div>
+  </section>
+
+  <aside class="detail" id="detail" aria-live="polite">
+    <span class="eyebrow" id="d-kind">Selected</span>
+    <h3 id="d-title"></h3>
+    <p id="d-body"></p>
+    <span class="src" id="d-src"></span>
+  </aside>
+</div>
+
+<script>
+const STAGES = [
+  { n: "1", t: "lint", s: "ruff · mypy", d: "Fastest gate first: ruff, mypy. Nothing else runs if it fails.", src: ".github/workflows/ci.yml · tools/check.py lint" },
+  { n: "2", t: "unit + sanity", s: "in parallel", d: "Unit layer with a 90 % coverage floor (measured 93 %) and the hand-picked sanity set, run side by side.", src: "tools/check.py unit / sanity" },
+  { n: "3", t: "regression matrix", s: "Linux 3.11–3.14 · Win · macOS", d: "Every test except wall-clock timing tests, in parallel on 6 platform cells: Ubuntu with Python 3.11, 3.12, 3.13, 3.14, plus Windows and macOS with 3.14.", src: "ci.yml regression job" },
+  { n: "4", t: "report · docker", s: "Allure · image build", d: "Builds the single-file Allure report and the Docker images (ammeter-qa:test, ammeter-qa-report:latest), then runs the sanity set inside the image.", src: "ci.yml report / docker jobs · Dockerfile" },
+  { n: "PR", t: "diff coverage", s: "changed lines", d: "Pull requests only: every changed line in Ammeters/ must be covered (100 %), in src/ at least 90 %.", src: "tools/changed_coverage.py" },
+  { n: "✓", t: "ci-gate", s: "required check", cls: "gate", d: "Passes only if every job above passed. It is the single required status check: main accepts changes only through a pull request with a green ci-gate (branch protection, admins included).", src: ".github/branch-protection.json" },
+  { n: "→", t: "publish + deploy", s: "main only · CD_ENABLED", cls: "gapstage", d: "On a push to main, after ci-gate: both images are built once, tagged with the commit SHA and pushed to GitHub Container Registry; then tools/deploy.sh promotes them staging → regression → preprod → production, waiting at each step for the test run and the environment check. A failure stops the promotion. Each step runs in a GitHub Environment holding that cluster's KUBECONFIG; preprod and production can require a reviewer's approval. Switched off until the repository variable CD_ENABLED is true.", src: ".github/workflows/ci.yml publish-images, deploy-* · tools/deploy.sh" },
+];
+
+const ENVS = {
+  staging: { label: "staging", sub: "first stop", ns: "ammeter-staging", emu: 1, shards: 2, markers: "sanity", selected: 6, check: "env-check Job, once per apply", quota: "3 CPU · 3 Gi · 15 pods", images: "as built", pdb: false,
+    d: "First stop for every new image: the smoke set split over 2 shards, plus an environment check that runs the framework against the emulators deployed here." },
+  regression: { label: "regression", sub: "full suite, nightly", ns: "ammeter-regression", emu: 2, shards: 4, markers: "regression and not timing", selected: 24, check: "env-check Job, once per apply", quota: "6 CPU · 6 Gi · 30 pods", images: "as built", pdb: false, nightly: true,
+    d: "The whole suite except wall-clock tests over 4 shards; a nightly CronJob at 02:00 also runs the timing tests on a quiet cluster." },
+  preprod: { label: "preprod", sub: "release gate", ns: "ammeter-preprod", emu: 2, shards: 2, markers: "acceptance or sanity", selected: 8, check: "env-check Job, once per apply", quota: "4 CPU · 4 Gi · 20 pods", images: "pinned", pdb: true,
+    d: "Production-like gate before release: the image is pinned, emulators run 2 replicas protected by PodDisruptionBudgets, and the specification's acceptance tests run with the smoke set." },
+  production: { label: "production", sub: "real devices", ns: "ammeter-production", emu: 0, shards: 0, markers: "none", selected: 0, check: "device-check CronJob, every 15 min", quota: "1 CPU · 1 Gi · 5 pods", images: "same pin as preprod", pdb: false, prod: true,
+    d: "No emulators and no test run. The same Service names point at the real ammeters through selector-less Services and EndpointSlices; a CronJob checks the devices every 15 minutes, and a failed Job is the alert." },
+};
+
+const TESTS = {
+  // Real test IDs (under tests/), sorted the way tests/conftest.py shard() sorts them
+  sanity: ["integration/test_emulators_and_client.py::test_the_emulators_and_client_over_real_sockets", "integration/test_example_smoke.py::test_the_example_script_runs_end_to_end", "unit/test_config_contract.py::test_the_configuration", "unit/test_instruments.py::test_the_instrument_model", "unit/test_sampling.py::test_sampling_and_its_schedule", "unit/test_statistics.py::test_statistics_control_chart_and_aliasing"],
+  "acceptance or sanity": ["acceptance/test_ammeter_acceptance.py::test_the_instruments_meet_their_datasheets_and_the_board_sweep", "acceptance/test_ammeter_acceptance.py::test_the_three_ammeters_meet_the_specification", "integration/test_emulators_and_client.py::test_the_emulators_and_client_over_real_sockets", "integration/test_example_smoke.py::test_the_example_script_runs_end_to_end", "unit/test_config_contract.py::test_the_configuration", "unit/test_instruments.py::test_the_instrument_model", "unit/test_sampling.py::test_sampling_and_its_schedule", "unit/test_statistics.py::test_statistics_control_chart_and_aliasing"],
+};
+
+const $ = (id) => document.getElementById(id);
+let current = "regression";
+
+function show(kind, title, body, src, el) {
+  document.querySelectorAll('[aria-pressed="true"]').forEach((e) => e.setAttribute("aria-pressed", "false"));
+  if (el) el.setAttribute("aria-pressed", "true");
+  $("d-kind").textContent = kind; $("d-title").textContent = title; $("d-body").textContent = body; $("d-src").textContent = src || "";
+}
+
+function button(cls, title, small, onClick) {
+  const b = document.createElement("button");
+  b.className = cls; b.type = "button"; b.setAttribute("aria-pressed", "false");
+  b.innerHTML = `<b></b><small></small>`; b.querySelector("b").textContent = title; b.querySelector("small").textContent = small;
+  b.addEventListener("click", () => onClick(b));
+  return b;
+}
+
+function renderFlow() {
+  const flow = $("flow");
+  STAGES.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "stage " + (s.cls || ""); b.setAttribute("aria-pressed", "false");
+    b.innerHTML = `<span class="n"></span><b></b><small></small>`;
+    b.querySelector(".n").textContent = s.n; b.querySelector("b").textContent = s.t; b.querySelector("small").textContent = s.s;
+    b.addEventListener("click", () => show("CI stage", s.t, s.d, s.src, b));
+    flow.appendChild(b);
+    if (i < STAGES.length - 1) { const a = document.createElement("span"); a.className = "arrow"; a.textContent = "›"; a.setAttribute("aria-hidden", "true"); flow.appendChild(a); }
+  });
+}
+
+function renderPromo() {
+  const promo = $("promo");
+  Object.entries(ENVS).forEach(([key, e], i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "env"; b.setAttribute("role", "tab"); b.id = "env-" + key;
+    b.innerHTML = `<b></b><small></small>`; b.querySelector("b").textContent = e.label; b.querySelector("small").textContent = e.sub;
+    b.addEventListener("click", () => { current = key; renderCluster(); show("Environment", e.label, e.d, "deploy/k8s/overlays/" + key + "/", null); });
+    promo.appendChild(b);
+    if (i < 3) { const a = document.createElement("span"); a.className = "arrow"; a.textContent = "→"; a.setAttribute("aria-hidden", "true"); promo.appendChild(a); }
+  });
+}
+
+function shardSizes(n, k) { return Array.from({ length: k }, (_, i) => Math.floor(n / k) + (i < n % k ? 1 : 0)); }
+
+function renderCluster() {
+  const e = ENVS[current];
+  document.querySelectorAll(".env").forEach((b) => b.setAttribute("aria-selected", String(b.id === "env-" + current)));
+  $("ns-label").textContent = "namespace " + e.ns;
+  $("facts").innerHTML = "";
+  [["tests", e.markers === "none" ? "none" : `${e.markers} (${e.selected})`], ["shards", e.shards || "–"], ["emulator replicas", e.emu || "real devices"], ["check", e.check], ["quota", e.quota], ["image", e.images]]
+    .forEach(([k, v]) => { const s = document.createElement("span"); s.innerHTML = `${k} <b></b>`; s.querySelector("b").textContent = v; $("facts").appendChild(s); });
+
+  const nodes = [
+    { name: "control-plane", tag: ["cp", "control plane"], pods: [] },
+    { name: "desktop-worker", tag: ["sut", "pool: sut"], pods: [] },
+    { name: "desktop-worker2", tag: ["worker", "pool: test-workers"], pods: [] },
+    { name: "desktop-worker3", tag: ["worker", "pool: test-workers"], pods: [] },
+  ];
+  const sizes = e.shards ? shardSizes(e.selected, e.shards) : [];
+  for (let r = 0; r < e.emu; r++) for (const [a, port] of [["greenlee", 5000], ["entes", 5001], ["circutor", 5002]])
+    nodes[1].pods.push({ cls: "pod emu", t: `${a}-${r + 1}`, s: `Service ${a}:${port}`, kind: "Emulator pod",
+      d: `Runs \`python -m Ammeters.serve --type ${a} --port ${port}\` behind Service ${a}. Only pods labelled qa.ammeter/client=true may connect (NetworkPolicy). ${e.pdb ? "A PodDisruptionBudget keeps one replica up during node maintenance." : ""}`, src: "deploy/k8s/base/emulators.yaml" });
+  sizes.forEach((n, i) => nodes[2 + (i % 2)].pods.push({ cls: "pod shard", t: `test-run-${i}`, s: `shard ${i} · ${n} tests`, kind: "Test shard pod",
+    d: `Indexed Job completion ${i} of ${e.shards}: runs \`pytest -m "${e.markers}"\`, keeps every ${e.shards}th sorted test from index ${i} (${n} tests), then uploads its Allure results to http://results:8080. A failed shard is retried on its own (backoffLimitPerIndex 1).`, src: "deploy/k8s/base/test-workers.yaml · tests/conftest.py shard()" }));
+  if (e.shards) nodes[3].pods.push({ cls: "pod svc", t: "results", s: "collector · PVC · :8080", kind: "Results collector",
+    d: "Owns the report volume (ReadWriteOnce, so shards upload over HTTP instead of mounting it) and builds one merged Allure report when the last shard has arrived. A report failure is recorded in the run's status, never returned as a lost upload.", src: "deploy/k8s/base/results-collector.yaml · tools/results_server.py" });
+  if (e.nightly) nodes[2].pods.push({ cls: "pod job", t: "nightly-regression", s: "CronJob · 02:00", kind: "CronJob",
+    d: "Creates a new, uniquely named Job each night running the full regression including the wall-clock timing tests, while the cluster is quiet.", src: "deploy/k8s/overlays/regression/nightly.yaml" });
+  nodes[e.prod ? 2 : 3].pods.push(e.prod
+    ? { cls: "pod job", t: "device-check", s: "CronJob · */15 * * * *", kind: "CronJob",
+        d: "Every 15 minutes runs `examples.run_tests --no-emulators --fail-on-errors` against the real ammeters through their Services. A failed Job is the alert.", src: "deploy/k8s/overlays/production/monitoring.yaml" }
+    : { cls: "pod job", t: "env-check", s: "Job · once per apply", kind: "Job",
+        d: "Answers 'does this environment work?': runs the framework against the emulators deployed here, through their Services, using the ConfigMap ammeter-config (hosts are Service names).", src: "deploy/k8s/base/env-check.yaml" });
+
+  const wrap = $("nodes"); wrap.innerHTML = "";
+  nodes.forEach((n) => {
+    const col = document.createElement("div"); col.className = "node";
+    col.innerHTML = `<div class="node-h"><b></b><span class="tag ${n.tag[0]}"></span><span class="ns"></span></div><div class="pods"></div>`;
+    col.querySelector("b").textContent = n.name; col.querySelector(".tag").textContent = n.tag[1];
+    col.querySelector(".ns").textContent = n.name === "control-plane" ? "API server, scheduler, etcd" : e.ns;
+    const pods = col.querySelector(".pods");
+    if (!n.pods.length) { const p = document.createElement("span"); p.className = "empty"; p.textContent = n.name === "control-plane" ? "no workloads scheduled here" : "nothing from this environment"; pods.appendChild(p); }
+    n.pods.forEach((p) => pods.appendChild(button(p.cls, p.t, p.s, (b) => show(p.kind, p.t, p.d, p.src, b))));
+    wrap.appendChild(col);
+  });
+
+  const ext = $("external"); ext.innerHTML = "";
+  if (e.prod) {
+    const box = document.createElement("div"); box.className = "external";
+    box.innerHTML = `<span class="eyebrow">Outside the cluster · reached through selector-less Services + EndpointSlices</span><div class="pods"></div><span class="note">Addresses are placeholders (192.0.2.x, a documentation range) until the real device IPs are known.</span>`;
+    [["greenlee", 5000, "192.0.2.10"], ["entes", 5001, "192.0.2.11"], ["circutor", 5002, "192.0.2.12"]].forEach(([a, port, ip]) =>
+      box.querySelector(".pods").appendChild(button("pod prod", a + " ammeter", `${ip}:${port}`, (b) => show("Real device", a + " ammeter", `The real ${a} instrument. Service ${a}:${port} has no pod selector; an EndpointSlice points it at ${ip}, so the framework uses the same host names as in the other environments.`, "deploy/k8s/overlays/production/devices.yaml", b))));
+    ext.appendChild(box);
+  }
+  renderShards(e);
+}
+
+function renderShards(e) {
+  const box = $("shards"); box.innerHTML = "";
+  if (!e.shards) { const p = document.createElement("p"); p.className = "note"; p.textContent = "Production runs no test shards: it only checks the real devices on a schedule."; box.appendChild(p); return; }
+  const names = TESTS[e.markers] || null;
+  const sizes = shardSizes(e.selected, e.shards);
+  sizes.forEach((n, i) => {
+    const col = document.createElement("div"); col.className = "shard-col";
+    col.innerHTML = `<b></b><ol></ol>`; col.querySelector("b").textContent = `test-run-${i} · ${n} tests`;
+    const ol = col.querySelector("ol");
+    if (names) names.filter((_, j) => j % e.shards === i).forEach((t) => { const li = document.createElement("li"); li.textContent = t; ol.appendChild(li); });
+    else { const li = document.createElement("li"); li.textContent = `sorted tests #${i}, #${i + e.shards}, #${i + 2 * e.shards}, …`; ol.appendChild(li); }
+    box.appendChild(col);
+  });
+}
+
+renderFlow(); renderPromo(); renderCluster();
+show("Environment", ENVS[current].label, ENVS[current].d, "deploy/k8s/overlays/" + current + "/", null);
+</script>
+</body>
+</html>

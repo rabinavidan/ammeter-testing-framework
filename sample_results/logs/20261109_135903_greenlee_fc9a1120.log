@@ -1,0 +1,17 @@
+2026-11-09 13:59:03,955 [INFO] test_greenlee_fc9a1120: Starting test greenlee_fc9a1120: greenlee on port 5000, 10 samples at 5 Hz over 2 s
+2026-11-09 13:59:03,955 [WARNING] test_greenlee_fc9a1120: Sampling at 5 Hz is below twice the 50 Hz mains frequency: any mains ripple will appear at 0 Hz (as a constant offset)
+2026-11-09 13:59:03,956 [DEBUG] test_greenlee_fc9a1120: Sample 0 at 0.0000s: 0.19375720776852307 A
+2026-11-09 13:59:04,181 [DEBUG] test_greenlee_fc9a1120: Sample 1 at 0.2003s: 0.09112846558059692 A
+2026-11-09 13:59:04,357 [DEBUG] test_greenlee_fc9a1120: Sample 2 at 0.4006s: 0.24951053279207408 A
+2026-11-09 13:59:04,557 [DEBUG] test_greenlee_fc9a1120: Sample 3 at 0.6007s: 3.003577356461545 A
+2026-11-09 13:59:04,770 [DEBUG] test_greenlee_fc9a1120: Sample 4 at 0.8001s: 0.07703591480728925 A
+2026-11-09 13:59:04,957 [DEBUG] test_greenlee_fc9a1120: Sample 5 at 1.0004s: 0.09896608701448974 A
+2026-11-09 13:59:05,171 [DEBUG] test_greenlee_fc9a1120: Sample 6 at 1.2002s: 0.18017997682764145 A
+2026-11-09 13:59:05,370 [DEBUG] test_greenlee_fc9a1120: Sample 7 at 1.4004s: 0.08096594687898201 A
+2026-11-09 13:59:05,557 [DEBUG] test_greenlee_fc9a1120: Sample 8 at 1.6005s: 0.05443696209049785 A
+2026-11-09 13:59:05,774 [DEBUG] test_greenlee_fc9a1120: Sample 9 at 1.8008s: 0.05442994946070874 A
+2026-11-09 13:59:05,956 [INFO] test_greenlee_fc9a1120: Finished test greenlee_fc9a1120: 10/10 samples ok, 0 errors, 2.000 s
+2026-11-09 13:59:05,956 [INFO] test_greenlee_fc9a1120: Statistics for greenlee_fc9a1120: count=10, mean=0.408399, median=0.0950473, std_dev=0.914231, min=0.0544299, max=3.00358, range=2.94915, coefficient_of_variation=2.23857, success_rate=1
+2026-11-09 13:59:05,956 [WARNING] test_greenlee_fc9a1120: greenlee_fc9a1120 is out of statistical control: 1 reading(s) beyond ±3 sigma, 0 run(s) of 9+ on one side of the median
+2026-11-09 13:59:06,290 [INFO] test_greenlee_fc9a1120: Saved plots for greenlee_fc9a1120: ['results\\plots\\greenlee_fc9a1120_time_series.png', 'results\\plots\\greenlee_fc9a1120_histogram.png', 'results\\plots\\greenlee_fc9a1120_control_chart.png']
+2026-11-09 13:59:06,374 [INFO] test_greenlee_fc9a1120: Archived greenlee_fc9a1120 to results\archive\greenlee_fc9a1120.json

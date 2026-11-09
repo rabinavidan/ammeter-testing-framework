@@ -1,0 +1,8 @@
+# Normalise line endings: LF in the repository and on Linux/macOS checkouts, so diffs and Docker builds are
+# identical whichever OS a file was edited on. Shell scripts must stay LF (they run in Linux containers).
+* text=auto eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.png binary
+*.pdf binary
+*.html -diff
