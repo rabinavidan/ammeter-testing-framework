@@ -1,5 +1,8 @@
 # Ammeter Testing Framework
 
+[![CI](https://github.com/rabinavidan/ammeter-testing-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/rabinavidan/ammeter-testing-framework/actions/workflows/ci.yml)
+· [Delivery architecture](https://rabinavidan.github.io/ammeter-testing-framework/)
+
 A configuration-driven framework for testing three emulated ammeters (Greenlee, ENTES, CIRCUTOR): it samples
 each device on a precise schedule, computes statistics, plots the readings, archives every run under a unique
 test ID, compares the ammeter types for precision and accuracy, and can inject faults into the emulators to
@@ -330,8 +333,7 @@ generated from a clean environment so it contains nothing that isn't required (`
 Docker and the main CI jobs install from it.
 
 Statistics, bootstrap intervals, the Mann-Kendall test, archiving and fault injection all use the Python standard
-library only. Verified on Windows (Python 3.14) and on Linux in the Docker image (Python 3.14); the CI matrix
-(not yet run) adds Python 3.11-3.13 on Linux and Python 3.14 on Windows and macOS.
+library only. CI runs the suite on Python 3.11-3.14 on Linux and Python 3.14 on Windows and macOS.
 
 ## Tests
 
@@ -376,5 +378,6 @@ Beyond the specification, and not needed to use the framework (described in
 [docs/engineering.md](docs/engineering.md)): quality gates and CI (`tools/check.py`, `.github/`,
 `.pre-commit-config.yaml`), a live specification audit (`tools/spec_audit.py`), Docker (`Dockerfile`,
 `docker-compose.yml`), Kubernetes with automatic promotion (`deploy/k8s/`, `tools/deploy.sh`, `Ammeters/serve.py`,
-`tools/results_server.py`) and a browsable delivery-architecture page (`site/`, published to GitHub Pages). CI, CD,
-Pages and branch protection are configured but have not run: they take effect once the project is pushed to GitHub.
+`tools/results_server.py`) and a browsable delivery-architecture page (`site/`, published to GitHub Pages). CI runs on
+every push and pull request, and `main` accepts changes only through a pull request with a green `ci-gate`. The
+deploy jobs are configured but off until a cluster is connected (`CD_ENABLED`).

@@ -4,10 +4,10 @@ None of this is required by the specification. It is the delivery tooling around
 CI, a merge rule for `main`, a specification audit, Docker, Kubernetes deployment and an agent-evaluation harness.
 The framework itself, and how to use it, is in the [README](../README.md).
 
-**Status:** the GitHub Actions workflows, git hooks, pull-request diff coverage and branch protection are
-configured but take effect only once the folder is a git repository pushed to GitHub; until then they have not
-run. Everything else here was run: the quality gates locally on Windows and in the Linux Docker image, and the
-Kubernetes overlays on a local 4-node cluster.
+**Status:** CI runs on GitHub on every push and pull request (Linux, Windows and macOS), branch protection on
+`main` requires a green `ci-gate`, and the architecture page is live on
+[GitHub Pages](https://rabinavidan.github.io/ammeter-testing-framework/). The deploy jobs are configured but off
+until a cluster is connected (`CD_ENABLED`); `tools/deploy.sh` itself was verified on a local 4-node cluster.
 
 ## Tests and the Allure report
 
