@@ -58,6 +58,8 @@ p { margin: 0; max-width: 68ch; }
 code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
 
 header { display: grid; gap: 10px; }
 .status { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -144,6 +146,7 @@ header { display: grid; gap: 10px; }
       <span class="pill ok">CI green on GitHub (Linux, Windows, macOS)</span>
       <span class="pill warn">CD configured: enable with CD_ENABLED + cluster credentials</span>
     </div>
+    <p class="lede"><a href="allure-report/">Open the Allure test report</a> · <a href="https://github.com/rabinavidan/ammeter-testing-framework">Source on GitHub</a></p>
   </header>
 
   <section class="section" aria-labelledby="ci-h">

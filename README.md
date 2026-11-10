@@ -1,6 +1,7 @@
 # Ammeter Testing Framework
 
 [![CI](https://github.com/rabinavidan/ammeter-testing-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/rabinavidan/ammeter-testing-framework/actions/workflows/ci.yml)
+· [Allure test report](https://rabinavidan.github.io/ammeter-testing-framework/allure-report/)
 · [Delivery architecture](https://rabinavidan.github.io/ammeter-testing-framework/)
 
 A configuration-driven framework for testing three emulated ammeters (Greenlee, ENTES, CIRCUTOR): it samples
@@ -199,8 +200,10 @@ sample record has every field the current code produces.
 at 50 Hz (its config is [`reliability/config.yaml`](sample_results/reliability/config.yaml)), made to answer the
 "most reliable method" question, which 10 readings can't (see below).
 
-[`allure-report.html`](sample_results/allure-report.html) is the Allure report of a full test-suite run
-(26 passed): one self-contained file that opens directly in a browser.
+The Allure report of a full test-suite run (26 passed) is **[viewable online](https://rabinavidan.github.io/ammeter-testing-framework/allure-report/)**.
+Its source is [`sample_results/allure-report.html`](sample_results/allure-report.html), one self-contained file
+that also opens directly in a browser once downloaded; GitHub's file view can't display it (too large, and it shows
+HTML as source), so GitHub Pages serves it.
 
 **Statistics** (10 readings each):
 

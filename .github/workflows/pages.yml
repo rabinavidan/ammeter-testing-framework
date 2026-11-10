@@ -1,12 +1,14 @@
-# Publish site/ (the delivery-architecture diagram) to GitHub Pages on every push to main that changes it.
+# Publish to GitHub Pages on every push to main that changes what's published:
+#   /                 site/index.html, the delivery-architecture diagram
+#   /allure-report/   sample_results/allure-report.html, the sample Allure report. GitHub can't display a 4.75 MB HTML
+#                     file in the repository view ("View raw" shows its source), so it is served here instead.
 # One-time setup: repository Settings > Pages > Build and deployment > Source: "GitHub Actions".
-# The page is then at https://<owner>.github.io/<repository>/
 name: Pages
 
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "sample_results/allure-report.html", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -26,9 +28,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/allure-report
+          cp -r site/. _site/
+          cp sample_results/allure-report.html _site/allure-report/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
